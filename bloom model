@@ -1,0 +1,498 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "gpuType": "T4",
+      "authorship_tag": "ABX9TyNMTh/mnjB5i4vxDLdhuPoI",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/kanansharmaa/GestureGo/blob/master/bloom%20model\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 1,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Ev_a4zBTgVBw",
+        "outputId": "9d9b5fac-4aad-4c9f-a266-adb31fd505b5"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Requirement already satisfied: transformers in /usr/local/lib/python3.10/dist-packages (4.35.2)\n",
+            "Requirement already satisfied: filelock in /usr/local/lib/python3.10/dist-packages (from transformers) (3.13.1)\n",
+            "Requirement already satisfied: huggingface-hub<1.0,>=0.16.4 in /usr/local/lib/python3.10/dist-packages (from transformers) (0.19.4)\n",
+            "Requirement already satisfied: numpy>=1.17 in /usr/local/lib/python3.10/dist-packages (from transformers) (1.23.5)\n",
+            "Requirement already satisfied: packaging>=20.0 in /usr/local/lib/python3.10/dist-packages (from transformers) (23.2)\n",
+            "Requirement already satisfied: pyyaml>=5.1 in /usr/local/lib/python3.10/dist-packages (from transformers) (6.0.1)\n",
+            "Requirement already satisfied: regex!=2019.12.17 in /usr/local/lib/python3.10/dist-packages (from transformers) (2023.6.3)\n",
+            "Requirement already satisfied: requests in /usr/local/lib/python3.10/dist-packages (from transformers) (2.31.0)\n",
+            "Requirement already satisfied: tokenizers<0.19,>=0.14 in /usr/local/lib/python3.10/dist-packages (from transformers) (0.15.0)\n",
+            "Requirement already satisfied: safetensors>=0.3.1 in /usr/local/lib/python3.10/dist-packages (from transformers) (0.4.0)\n",
+            "Requirement already satisfied: tqdm>=4.27 in /usr/local/lib/python3.10/dist-packages (from transformers) (4.66.1)\n",
+            "Requirement already satisfied: fsspec>=2023.5.0 in /usr/local/lib/python3.10/dist-packages (from huggingface-hub<1.0,>=0.16.4->transformers) (2023.6.0)\n",
+            "Requirement already satisfied: typing-extensions>=3.7.4.3 in /usr/local/lib/python3.10/dist-packages (from huggingface-hub<1.0,>=0.16.4->transformers) (4.5.0)\n",
+            "Requirement already satisfied: charset-normalizer<4,>=2 in /usr/local/lib/python3.10/dist-packages (from requests->transformers) (3.3.2)\n",
+            "Requirement already satisfied: idna<4,>=2.5 in /usr/local/lib/python3.10/dist-packages (from requests->transformers) (3.4)\n",
+            "Requirement already satisfied: urllib3<3,>=1.21.1 in /usr/local/lib/python3.10/dist-packages (from requests->transformers) (2.0.7)\n",
+            "Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.10/dist-packages (from requests->transformers) (2023.7.22)\n"
+          ]
+        }
+      ],
+      "source": [
+        "!pip install transformers"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install torch"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "ROJGGYIkhTTO",
+        "outputId": "717fedf6-85c2-407a-9c74-6e098abee2a4"
+      },
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Requirement already satisfied: torch in /usr/local/lib/python3.10/dist-packages (2.1.0+cu118)\n",
+            "Requirement already satisfied: filelock in /usr/local/lib/python3.10/dist-packages (from torch) (3.13.1)\n",
+            "Requirement already satisfied: typing-extensions in /usr/local/lib/python3.10/dist-packages (from torch) (4.5.0)\n",
+            "Requirement already satisfied: sympy in /usr/local/lib/python3.10/dist-packages (from torch) (1.12)\n",
+            "Requirement already satisfied: networkx in /usr/local/lib/python3.10/dist-packages (from torch) (3.2.1)\n",
+            "Requirement already satisfied: jinja2 in /usr/local/lib/python3.10/dist-packages (from torch) (3.1.2)\n",
+            "Requirement already satisfied: fsspec in /usr/local/lib/python3.10/dist-packages (from torch) (2023.6.0)\n",
+            "Requirement already satisfied: triton==2.1.0 in /usr/local/lib/python3.10/dist-packages (from torch) (2.1.0)\n",
+            "Requirement already satisfied: MarkupSafe>=2.0 in /usr/local/lib/python3.10/dist-packages (from jinja2->torch) (2.1.3)\n",
+            "Requirement already satisfied: mpmath>=0.19 in /usr/local/lib/python3.10/dist-packages (from sympy->torch) (1.3.0)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Load model directly\n",
+        "from transformers import AutoTokenizer, AutoModelForCausalLM, set_seed\n"
+      ],
+      "metadata": {
+        "id": "89F7r14fhVTX"
+      },
+      "execution_count": 3,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import torch\n",
+        "torch.set_default_tensor_type(torch.cuda.FloatTensor)\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "B6AerBdhhpDm"
+      },
+      "execution_count": 6,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "tokenizer = AutoTokenizer.from_pretrained(\"bigscience/bloom-1b7\")\n",
+        "model = AutoModelForCausalLM.from_pretrained(\"bigscience/bloom-1b7\")"
+      ],
+      "metadata": {
+        "id": "tCpg_QhjmTil"
+      },
+      "execution_count": 7,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "\n"
+      ],
+      "metadata": {
+        "id": "wwp3H8nBm1YJ"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "model"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "iRSglQ7PjY4-",
+        "outputId": "dc5050c9-6266-4f6a-bdc3-1cb5e4ef3090"
+      },
+      "execution_count": 8,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "BloomForCausalLM(\n",
+              "  (transformer): BloomModel(\n",
+              "    (word_embeddings): Embedding(250880, 2048)\n",
+              "    (word_embeddings_layernorm): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)\n",
+              "    (h): ModuleList(\n",
+              "      (0-23): 24 x BloomBlock(\n",
+              "        (input_layernorm): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)\n",
+              "        (self_attention): BloomAttention(\n",
+              "          (query_key_value): Linear(in_features=2048, out_features=6144, bias=True)\n",
+              "          (dense): Linear(in_features=2048, out_features=2048, bias=True)\n",
+              "          (attention_dropout): Dropout(p=0.0, inplace=False)\n",
+              "        )\n",
+              "        (post_attention_layernorm): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)\n",
+              "        (mlp): BloomMLP(\n",
+              "          (dense_h_to_4h): Linear(in_features=2048, out_features=8192, bias=True)\n",
+              "          (gelu_impl): BloomGelu()\n",
+              "          (dense_4h_to_h): Linear(in_features=8192, out_features=2048, bias=True)\n",
+              "        )\n",
+              "      )\n",
+              "    )\n",
+              "    (ln_f): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)\n",
+              "  )\n",
+              "  (lm_head): Linear(in_features=2048, out_features=250880, bias=False)\n",
+              ")"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 8
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "model.__class__"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "-q4yvBqpj7Zd",
+        "outputId": "5b4285c5-2382-4263-f78e-bcd8f706aa27"
+      },
+      "execution_count": 9,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "transformers.models.bloom.modeling_bloom.BloomForCausalLM"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 9
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "model.__class__.__name__"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 35
+        },
+        "id": "vI1gEKojj9SX",
+        "outputId": "e7e86944-7ca1-4448-d205-93ec00c351dd"
+      },
+      "execution_count": 10,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "'BloomForCausalLM'"
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            }
+          },
+          "metadata": {},
+          "execution_count": 10
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "set_seed(11111)"
+      ],
+      "metadata": {
+        "id": "ibd9ab1VkEUf"
+      },
+      "execution_count": 11,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "I_s-ipeIkmAv",
+        "outputId": "e7358e6a-df3a-4907-aa09-d9751064e25a"
+      },
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "/usr/local/lib/python3.10/dist-packages/torch/__init__.py:614: UserWarning: torch.set_default_tensor_type() is deprecated as of PyTorch 2.1, please use torch.set_default_dtype() and torch.set_default_device() as alternatives. (Triggered internally at ../torch/csrc/tensor/python_tensor.cpp:451.)\n",
+            "  _C._set_default_tensor_type(t)\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "prompt=\"how was life in first century\"\n",
+        "\n",
+        "inputs=tokenizer(prompt, return_tensors=\"pt\")"
+      ],
+      "metadata": {
+        "id": "yuWO2wFTkzho"
+      },
+      "execution_count": 27,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "inputs"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "RuM0Nn4qlCrh",
+        "outputId": "87ad6cf9-3b9a-468b-90f8-24c1d57baaf3"
+      },
+      "execution_count": 28,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "{'input_ids': tensor([[20263,  1620, 10440,   361,  3968, 32807]]), 'attention_mask': tensor([[1, 1, 1, 1, 1, 1]])}"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 28
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "result=model.generate(**inputs,max_length=200, top_k=0, temperature=0.5)"
+      ],
+      "metadata": {
+        "id": "uwKivWX1lGkx"
+      },
+      "execution_count": 29,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "result"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "xLXhhcqpnicA",
+        "outputId": "69576d44-bff3-406c-c9b0-92a62ca8d2c5"
+      },
+      "execution_count": 30,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "tensor([[ 20263,   1620,  10440,    361,   3968,  32807,  72940,     34,    982,\n",
+              "            189,   2175,  12300,    632,    861,  10440,   1620,   5636,   5955,\n",
+              "           1485,   3595,   1701,   4472,  17918,     17,   1387,   6199,  65532,\n",
+              "            361,    267,   5636,  83228,   4676,     17,  12941,  65532,    361,\n",
+              "         166397,     15,    361, 166397,     15,    361, 166397,     17,  12941,\n",
+              "          65532,    361, 166397,     15,    361, 166397,     15,    361, 166397,\n",
+              "             17,  12941,  65532,    361, 166397,     15,    361, 166397,     15,\n",
+              "            361, 166397,     17,  12941,  65532,    361, 166397,     15,    361,\n",
+              "         166397,     15,    361, 166397,     17,  12941,  65532,    361, 166397,\n",
+              "             15,    361, 166397,     15,    361, 166397,     17,  12941,  65532,\n",
+              "            361, 166397,     15,    361, 166397,     15,    361, 166397,     17,\n",
+              "          12941,  65532,    361, 166397,     15,    361, 166397,     15,    361,\n",
+              "         166397,     17,  12941,  65532,    361, 166397,     15,    361, 166397,\n",
+              "             15,    361, 166397,     17,  12941,  65532,    361, 166397,     15,\n",
+              "            361, 166397,     15,    361, 166397,     17,  12941,  65532,    361,\n",
+              "         166397,     15,    361, 166397,     15,    361, 166397,     17,  12941,\n",
+              "          65532,    361, 166397,     15,    361, 166397,     15,    361, 166397,\n",
+              "             17,  12941,  65532,    361, 166397,     15,    361, 166397,     15,\n",
+              "            361, 166397,     17,  12941,  65532,    361, 166397,     15,    361,\n",
+              "         166397,     15,    361, 166397,     17,  12941,  65532,    361, 166397,\n",
+              "             15,    361, 166397,     15,    361, 166397,     17,  12941,  65532,\n",
+              "            361, 166397,     15,    361, 166397,     15,    361, 166397,     17,\n",
+              "          12941,  65532]])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 30
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "result[0]"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "uUPXh2KLnxjO",
+        "outputId": "e5dff36e-5e6c-454a-fda2-fb9b258c9580"
+      },
+      "execution_count": 31,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "tensor([ 20263,   1620,  10440,    361,   3968,  32807,  72940,     34,    982,\n",
+              "           189,   2175,  12300,    632,    861,  10440,   1620,   5636,   5955,\n",
+              "          1485,   3595,   1701,   4472,  17918,     17,   1387,   6199,  65532,\n",
+              "           361,    267,   5636,  83228,   4676,     17,  12941,  65532,    361,\n",
+              "        166397,     15,    361, 166397,     15,    361, 166397,     17,  12941,\n",
+              "         65532,    361, 166397,     15,    361, 166397,     15,    361, 166397,\n",
+              "            17,  12941,  65532,    361, 166397,     15,    361, 166397,     15,\n",
+              "           361, 166397,     17,  12941,  65532,    361, 166397,     15,    361,\n",
+              "        166397,     15,    361, 166397,     17,  12941,  65532,    361, 166397,\n",
+              "            15,    361, 166397,     15,    361, 166397,     17,  12941,  65532,\n",
+              "           361, 166397,     15,    361, 166397,     15,    361, 166397,     17,\n",
+              "         12941,  65532,    361, 166397,     15,    361, 166397,     15,    361,\n",
+              "        166397,     17,  12941,  65532,    361, 166397,     15,    361, 166397,\n",
+              "            15,    361, 166397,     17,  12941,  65532,    361, 166397,     15,\n",
+              "           361, 166397,     15,    361, 166397,     17,  12941,  65532,    361,\n",
+              "        166397,     15,    361, 166397,     15,    361, 166397,     17,  12941,\n",
+              "         65532,    361, 166397,     15,    361, 166397,     15,    361, 166397,\n",
+              "            17,  12941,  65532,    361, 166397,     15,    361, 166397,     15,\n",
+              "           361, 166397,     17,  12941,  65532,    361, 166397,     15,    361,\n",
+              "        166397,     15,    361, 166397,     17,  12941,  65532,    361, 166397,\n",
+              "            15,    361, 166397,     15,    361, 166397,     17,  12941,  65532,\n",
+              "           361, 166397,     15,    361, 166397,     15,    361, 166397,     17,\n",
+              "         12941,  65532])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 31
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "tokenizer.decode(result[0])"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 122
+        },
+        "id": "-dMzC0Fkn4SE",
+        "outputId": "64e5643f-f847-4650-8324-be9ccd9be1cf"
+      },
+      "execution_count": 32,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "'how was life in first century Palestine?”\\nThe answer is that life was very different from what we know today. The people lived in a very primitive way. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived'"
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "string"
+            }
+          },
+          "metadata": {},
+          "execution_count": 32
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "print(tokenizer.decode(result[0], truncate_before_pattern=[r\"\\n\\n^#\",\"^'''\", \"\\n\\n\\n\"]))"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "gFJj9KMcoBeg",
+        "outputId": "8dbdebd1-b254-401e-cbbb-080aa12ca48c"
+      },
+      "execution_count": 33,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "how was life in first century Palestine?”\n",
+            "The answer is that life was very different from what we know today. The people lived in a very primitive way. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived in caves, in caves, in caves. They lived\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [],
+      "metadata": {
+        "id": "jov5_UGGp2K7"
+      },
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
